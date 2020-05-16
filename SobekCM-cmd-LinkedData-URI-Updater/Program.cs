@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.SqlClient;
 using System.IO;
 using disUtility;
 
@@ -7,7 +8,7 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
 {
     class Program
     {
-        private static string myversion = "20200516-1606";
+        private static string myversion = "20200516-1659";
 
         private class item
         {
@@ -30,43 +31,49 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
             }
 
             string statement = null, path_mets=null;
-            disUtility.mysql mysql = new mysql();
-            MySql.Data.MySqlClient.MySqlConnection mconn = mysql.getMySQLconn("ldc_digitization_aws");
+            SqlConnection conn = mssql.getMSSQLconnection(null, "liveaws");
+            int idx = 0;
+            
+            //MySql.Data.MySqlClient.MySqlConnection mconn = mysql.getMySQLconn("ldc_digitization_aws");
 
             statement = "select Bibid,VID,mainthumbnail from SobekCM_Item as i join SobekCM_Item_Group as ig ";
             statement += " on i.groupid=ig.groupid and i.deleted=0 and i.dark=0 and i.ip_restriction_mask=0 order by bibid,vid";
 
-            MySql.Data.MySqlClient.MySqlDataReader mdr = mysql.getMySQLdataReader(mconn, statement);
+            //MySql.Data.MySqlClient.MySqlDataReader mdr = mysql.getMySQLdataReader(mconn, statement);
+
+            SqlDataReader dr = mssql.getMSSQLdataReader(statement, conn);
 
             List<item> items = new List<item>();
             
-            if (mdr!=null && mdr.HasRows)
+            if (dr!=null && dr.HasRows)
             {
-                while (mdr.Read())
+                while (dr.Read())
                 {
                     item myitem = new item();
-                    myitem.packageid = mdr["bibid"].ToString().Trim() + "_" + mdr["vid"].ToString().Trim();
-                    myitem.mainthumbnail = mdr["mainthumbnail"].ToString().Trim();
-                    myitem.loi = mdr["mainthumbnail"].ToString().Trim().Substring(0, 9);
+                    myitem.packageid = dr["bibid"].ToString().Trim() + "_" + dr["vid"].ToString().Trim();
+                    myitem.mainthumbnail = dr["mainthumbnail"].ToString().Trim();
+                    myitem.loi = dr["mainthumbnail"].ToString().Trim().Substring(0, 9);
                     myitem.path_folder = sobekcm.GetContentFolderPathFromPackageID(myitem.packageid);
                     items.Add(myitem);
                 }
 
-                mdr.Close();
+                dr.Close();
 
                 Console.WriteLine(items.Count + " records were read.");
 
                 foreach (item myitem in items)
                 {
+                    idx++;
+
                     path_mets = myitem.path_folder + myitem.packageid + ".mets.xml";
 
                     if (File.Exists(path_mets))
                     {
-                        Console.WriteLine(myitem.packageid + " mets exists.");
+                        Console.WriteLine(idx + ". " + myitem.packageid + " mets exists.");
                     }
                     else
                     {
-                        Console.WriteLine(myitem.packageid + " mets does NOT exist [" + path_mets + "].");
+                        Console.WriteLine(idx + ". " + myitem.packageid + " mets does NOT exist [" + path_mets + "].");
                     }
                 }
             }
