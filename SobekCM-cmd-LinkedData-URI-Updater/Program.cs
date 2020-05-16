@@ -8,7 +8,7 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
 {
     class Program
     {
-        private static string myversion = "20200516-1754";
+        private static string myversion = "20200516-1816";
 
         private class item
         {
@@ -36,7 +36,7 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
             
             //MySql.Data.MySqlClient.MySqlConnection mconn = mysql.getMySQLconn("ldc_digitization_aws");
 
-            statement = "select Bibid,VID,mainthumbnail from SobekCM_Item as i join SobekCM_Item_Group as ig ";
+            statement = "select Bibid,VID,MainThumbnail from SobekCM_Item as i join SobekCM_Item_Group as ig ";
             statement += " on i.groupid=ig.groupid and i.deleted=0 and i.dark=0 and i.ip_restriction_mask=0 order by bibid,vid";
 
             //MySql.Data.MySqlClient.MySqlDataReader mdr = mysql.getMySQLdataReader(mconn, statement);
@@ -50,9 +50,14 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
                 while (dr.Read())
                 {
                     item myitem = new item();
-                    myitem.packageid = dr["bibid"].ToString().Trim() + "_" + dr["vid"].ToString().Trim();
-                    myitem.mainthumbnail = dr["mainthumbnail"].ToString().Trim();
-                    myitem.loi = dr["mainthumbnail"].ToString().Trim().Substring(0, 9);
+                    myitem.packageid = dr["BibID"].ToString().Trim() + "_" + dr["VID"].ToString().Trim();
+                    myitem.mainthumbnail = dr["MainThumbnail"].ToString().Trim();
+
+                    if (dr["MainThumbnail"].ToString().Trim().Length >= 9)
+                    {
+                        myitem.loi = dr["MainThumbnail"].ToString().Trim().Substring(0, 9);
+                    }
+                    
                     myitem.path_folder = sobekcm.GetContentFolderPathFromPackageID(myitem.packageid);
                     items.Add(myitem);
                 }
