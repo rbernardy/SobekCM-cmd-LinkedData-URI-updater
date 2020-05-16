@@ -8,7 +8,7 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
 {
     class Program
     {
-        private static string myversion = "20200516-1816";
+        private static string myversion = "20200516-1831";
 
         private class item
         {
@@ -28,6 +28,16 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
             else
             {
                 Console.WriteLine("version=[" + myversion + "].");
+            }
+
+            string prefix = null;
+
+            foreach (string myArg in args)
+            {
+                if (myArg.StartsWith("--prefix"))
+                {
+                    prefix = myArg.Substring(9);
+                }
             }
 
             string statement = null, path_mets=null;
@@ -70,7 +80,7 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
                 {
                     idx++;
 
-                    path_mets = myitem.path_folder + myitem.packageid + ".mets.xml";
+                    path_mets = prefix + myitem.path_folder + myitem.packageid + ".mets.xml";
 
                     if (File.Exists(path_mets))
                     {
