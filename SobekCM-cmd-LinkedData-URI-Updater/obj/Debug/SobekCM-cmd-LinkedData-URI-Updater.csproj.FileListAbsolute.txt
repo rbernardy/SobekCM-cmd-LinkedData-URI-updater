@@ -110,3 +110,4 @@ C:\Users\rbernard\Documents\gitextensions\SobekCM-cmd-LinkedData-URI-Updater\Sob
 C:\Users\rbernard\Documents\gitextensions\SobekCM-cmd-LinkedData-URI-Updater\SobekCM-cmd-LinkedData-URI-Updater\obj\Debug\SobekCM-cmd-LinkedData-URI-Updater.csproj.CopyComplete
 C:\Users\rbernard\Documents\gitextensions\SobekCM-cmd-LinkedData-URI-Updater\SobekCM-cmd-LinkedData-URI-Updater\obj\Debug\SobekCM-cmd-LinkedData-URI-Updater.exe
 C:\Users\rbernard\Documents\gitextensions\SobekCM-cmd-LinkedData-URI-Updater\SobekCM-cmd-LinkedData-URI-Updater\obj\Debug\SobekCM-cmd-LinkedData-URI-Updater.pdb
+C:\Users\rbernard\Documents\gitextensions\SobekCM-cmd-LinkedData-URI-Updater\SobekCM-cmd-LinkedData-URI-Updater\bin\Debug\SobekCM-cmd-LinkedData-URI-Updater.xml

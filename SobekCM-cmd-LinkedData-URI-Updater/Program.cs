@@ -8,7 +8,7 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
 {
     class Program
     {
-        private static string myversion = "20200516-1659";
+        private static string myversion = "20200516-1754";
 
         private class item
         {
