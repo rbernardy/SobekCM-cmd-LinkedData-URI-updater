@@ -10,7 +10,7 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
 {
     class Program
     {
-        private static string myversion = "20200516-2346";
+        private static string myversion = "20200516-2355";
 
         private class item
         {
@@ -116,10 +116,14 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
         {
             SobekCM_Item item = new SobekCM_Item();
 
+            Console.WriteLine("FEMUM: Reading [" + path_mets + "].");
+
             item.Read_From_METS(path_mets);
 
             if (item.Bib_Info.Subjects_Count>0)
             {
+                Console.WriteLine("There are [" + item.Bib_Info.Subjects.Count + "] subjects.");
+
                 foreach (Subject_Info si in item.Bib_Info.Subjects)
                 {
                     Console.WriteLine("actual_id=[" + si.Actual_ID + "].");
@@ -129,6 +133,10 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
                     Console.WriteLine("language=[" + si.Language + "].");
                     Console.WriteLine("\r\n");
                 }
+            }
+            else
+            {
+                Console.WriteLine("There are no subjects [" + path_mets + "].");
             }
 
             item = null;
