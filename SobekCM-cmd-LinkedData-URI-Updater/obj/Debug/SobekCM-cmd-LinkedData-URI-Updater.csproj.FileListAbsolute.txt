@@ -111,3 +111,6 @@ C:\Users\rbernard\Documents\gitextensions\SobekCM-cmd-LinkedData-URI-Updater\Sob
 C:\Users\rbernard\Documents\gitextensions\SobekCM-cmd-LinkedData-URI-Updater\SobekCM-cmd-LinkedData-URI-Updater\obj\Debug\SobekCM-cmd-LinkedData-URI-Updater.exe
 C:\Users\rbernard\Documents\gitextensions\SobekCM-cmd-LinkedData-URI-Updater\SobekCM-cmd-LinkedData-URI-Updater\obj\Debug\SobekCM-cmd-LinkedData-URI-Updater.pdb
 C:\Users\rbernard\Documents\gitextensions\SobekCM-cmd-LinkedData-URI-Updater\SobekCM-cmd-LinkedData-URI-Updater\bin\Debug\SobekCM-cmd-LinkedData-URI-Updater.xml
+C:\Users\rbernard\Documents\gitextensions\SobekCM-cmd-LinkedData-URI-Updater\SobekCM-cmd-LinkedData-URI-Updater\bin\Debug\SolrNet.dll
+C:\Users\rbernard\Documents\gitextensions\SobekCM-cmd-LinkedData-URI-Updater\SobekCM-cmd-LinkedData-URI-Updater\bin\Debug\SolrNet.pdb
+C:\Users\rbernard\Documents\gitextensions\SobekCM-cmd-LinkedData-URI-Updater\SobekCM-cmd-LinkedData-URI-Updater\bin\Debug\SolrNet.xml

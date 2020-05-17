@@ -55,6 +55,10 @@
     <Reference Include="RdfMapperNet, Version=1.0.2.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\RdfMapperNet.1.0.2\lib\RdfMapperNet.dll</HintPath>
     </Reference>
+    <Reference Include="SobekCM_Resource_Object, Version=4.10.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\Box Sync\SobekCM-Web-Application-dc-redesign-backup\SobekCM_Resource_Object\bin\Debug\SobekCM_Resource_Object.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />

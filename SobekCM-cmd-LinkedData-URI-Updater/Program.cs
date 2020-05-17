@@ -3,12 +3,14 @@ using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.IO;
 using disUtility;
+using SobekCM.Resource_Object;
+using SobekCM.Resource_Object.Bib_Info;
 
 namespace SobekCM_cmd_LinkedData_URI_Updater
 {
     class Program
     {
-        private static string myversion = "20200516-1831";
+        private static string myversion = "20200516-2346";
 
         private class item
         {
@@ -30,7 +32,7 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
                 Console.WriteLine("version=[" + myversion + "].");
             }
 
-            string prefix = null;
+            string prefix = null,aggcode=null;
 
             foreach (string myArg in args)
             {
@@ -38,6 +40,12 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
                 {
                     prefix = myArg.Substring(9);
                 }
+
+                if (myArg.StartsWith("--aggcode"))
+                {
+                    aggcode = myArg.Substring(10);
+                }
+
             }
 
             string statement = null, path_mets=null;
@@ -47,7 +55,15 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
             //MySql.Data.MySqlClient.MySqlConnection mconn = mysql.getMySQLconn("ldc_digitization_aws");
 
             statement = "select Bibid,VID,MainThumbnail from SobekCM_Item as i join SobekCM_Item_Group as ig ";
-            statement += " on i.groupid=ig.groupid and i.deleted=0 and i.dark=0 and i.ip_restriction_mask=0 order by bibid,vid";
+            statement += "on i.groupid=ig.groupid ";
+            statement += "where i.deleted=0 and i.dark=0 and i.ip_restriction_mask=0";
+
+            if (aggcode!=null)
+            {
+                statement += " and aggregationcodes like '%" + aggcode + "%' ";
+            }
+
+            statement += "order by bibid,vid";
 
             //MySql.Data.MySqlClient.MySqlDataReader mdr = mysql.getMySQLdataReader(mconn, statement);
 
@@ -85,6 +101,8 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
                     if (File.Exists(path_mets))
                     {
                         Console.WriteLine(idx + ". " + myitem.packageid + " mets exists.");
+
+                        find_exact_matches_update_mets(path_mets);
                     }
                     else
                     {
@@ -92,6 +110,28 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
                     }
                 }
             }
+        }
+
+        private static void find_exact_matches_update_mets(string path_mets)
+        {
+            SobekCM_Item item = new SobekCM_Item();
+
+            item.Read_From_METS(path_mets);
+
+            if (item.Bib_Info.Subjects_Count>0)
+            {
+                foreach (Subject_Info si in item.Bib_Info.Subjects)
+                {
+                    Console.WriteLine("actual_id=[" + si.Actual_ID + "].");
+                    Console.WriteLine("id=[" + si.ID + "].");
+                    Console.WriteLine("authority=[" + si.Authority + "].");
+                    Console.WriteLine("class_type=[" + si.Class_Type + "].");
+                    Console.WriteLine("language=[" + si.Language + "].");
+                    Console.WriteLine("\r\n");
+                }
+            }
+
+            item = null;
         }
     }
 }
