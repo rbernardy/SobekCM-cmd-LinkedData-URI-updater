@@ -10,7 +10,7 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
 {
     class Program
     {
-        private static string myversion = "20200516-2355";
+        private static string myversion = "20200517-0009";
 
         private class item
         {
@@ -98,6 +98,8 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
 
                     path_mets = prefix + myitem.path_folder + myitem.packageid + ".mets.xml";
 
+                    Console.WriteLine("\r\n");
+
                     if (File.Exists(path_mets))
                     {
                         Console.WriteLine(idx + ". " + myitem.packageid + " mets exists.");
@@ -117,9 +119,9 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
             SobekCM_Item item = new SobekCM_Item();
 
             Console.WriteLine("FEMUM: Reading [" + path_mets + "].");
-
+            
             item.Read_From_METS(path_mets);
-
+                        
             if (item.Bib_Info.Subjects_Count>0)
             {
                 Console.WriteLine("There are [" + item.Bib_Info.Subjects.Count + "] subjects.");
@@ -136,7 +138,7 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
             }
             else
             {
-                Console.WriteLine("There are no subjects [" + path_mets + "].");
+                Console.WriteLine("There are no subjects [" + path_mets + "], [" + item.BibID + "_" + item.VID + "], [" + item.Bib_Title + "].");
             }
 
             item = null;
