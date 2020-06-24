@@ -3,10 +3,7 @@ using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.IO;
 using System.Xml;
-using System.Xml.Linq;
 using disUtility;
-using SobekCM.Resource_Object;
-using SobekCM.Resource_Object.Bib_Info;
 using VDS.RDF.Parsing;
 using VDS.RDF.Query;
 
@@ -14,7 +11,7 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
 {
     class Program
     {
-        private static string myversion = "20200518-2124";
+        private static string myversion = "20200624-1003";
 
         private class item
         {
@@ -25,11 +22,11 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
             public string url_folder { get; set; }
         }
 
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
             if (args.Length==0)
             {
-                Console.WriteLine("Command line arguments that are available: prefix, aggcode, db...");
+                Console.WriteLine("Command line arguments that are available: prefix, aggcode, db, urlmode, limit...");
                 return;
             }
             else
@@ -39,6 +36,7 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
 
             string prefix = null,aggcode=null, db=null;
             Boolean mytry = false, urlmode=false;
+            int limit = 999;
 
             foreach (string myArg in args)
             {
@@ -61,26 +59,31 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
                 {
                     urlmode = true;
                 }
+
+                if (myArg.StartsWith("--limit"))
+                {
+                    limit = int.Parse(myArg.Substring(8));
+                }
             }
 
             string myuri = "http://fuseki.dss-test.org:3030/authoritiessubjects-madsrdf-ttl-1/query";
-            RemoteQueryProcessor rqp = sparql.Get_Remote_Query_Processor(myuri);
 
+            // using dotNetRDF to connect to Apache Jena Fuseki tdb
+            RemoteQueryProcessor rqp = sparql.Get_Remote_Query_Processor(myuri);
             SparqlQueryParser parser = new SparqlQueryParser();
             SparqlQuery q=null;
-            
-
-            // ref SparqlQuery q, ref SparqlQueryParser parser
-
+        
             string statement = null, path_mets=null, path_mets_xsd=null, url_mets=null;
 
+            // xmlUtilities is a helper class for xml operations in the disUtility library
             path_mets_xsd = xmlUtilities.Get_METS_xsd_path();
 
             if (db == null) db = "liveaws";
+            // mssql is a helper class for working with a Microsoft SQL Server in the disUtility library
             SqlConnection conn = mssql.getMSSQLconnection(null, db);
             int idx = 0;
-            
-            //MySql.Data.MySqlClient.MySqlConnection mconn = mysql.getMySQLconn("ldc_digitization_aws");
+
+            // connecting to database to get publicly available packageids. Could just as easily use the publicly available OAI data provider - https://digital.lib.usf.edu//sobekcm_oai.aspx?verb=Identify&verb=Identify, etc.
 
             statement = "select Bibid,VID,MainThumbnail from SobekCM_Item as i join SobekCM_Item_Group as ig ";
             statement += "on i.groupid=ig.groupid ";
@@ -93,8 +96,6 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
 
             statement += "order by bibid,vid";
 
-            //MySql.Data.MySqlClient.MySqlDataReader mdr = mysql.getMySQLdataReader(mconn, statement);
-
             SqlDataReader dr = mssql.getMSSQLdataReader(statement, conn);
 
             List<item> items = new List<item>();
@@ -103,6 +104,10 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
             {
                 while (dr.Read())
                 {
+                    idx++;
+                    
+                    if (idx > limit) break;
+
                     item myitem = new item();
                     myitem.packageid = dr["BibID"].ToString().Trim() + "_" + dr["VID"].ToString().Trim();
                     myitem.mainthumbnail = dr["MainThumbnail"].ToString().Trim();
@@ -112,6 +117,7 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
                         myitem.loi = dr["MainThumbnail"].ToString().Trim().Substring(0, 9);
                     }
                     
+                    // sobekcm is a helper class for working with a SobekCM-based repository in the disUtility library
                     myitem.path_folder = sobekcm.GetContentFolderPathFromPackageID(myitem.packageid);
                     myitem.url_folder = sobekcm.GetContentFolderURLfromPackageID(myitem.packageid);
                     items.Add(myitem);
@@ -120,6 +126,7 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
                 dr.Close();
 
                 Console.WriteLine(items.Count + " records were read.");
+                idx = 0;
 
                 foreach (item myitem in items)
                 {
@@ -127,13 +134,21 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
 
                     if (urlmode)
                     {
+                        // running locally for testing, downloading mets via URL - https://hostname/content/SF/S0/##/##/##/#####/SFS#######.mets.xml
+                        // A packageid consists of a SobekCM BibID and VID in either the form bibid_vid (or a 'did' in solr - bibid:vid)
+                        // the bibid is a 10 digit alphanumeric: a alpha prefix (ours is SFS) and an index number, and a 5 digit VID, both with leading zeros.
+                        // So packageid SFS0070901_00001 has a mets URL of https://digital.lib.usf.edu/content/SF/S0/07/09/01/00001/SFS070901_00001.mets.xml
+
                         path_mets = Path.GetTempPath() + @"\" + myitem.packageid + ".mets.xml";
                         url_mets = myitem.url_folder + myitem.packageid + ".mets.xml";
                         Console.WriteLine("urlmode: getting url=[" + url_mets + "] and writing to path_mets=[" + path_mets + "].");
                         xmlUtilities.WriteMETSviaURLtoPath(url_mets, path_mets);
+                        string path_backup = path_mets + ".bak";
+                        File.WriteAllText(path_backup, File.ReadAllText(path_mets));
                     }
                     else
                     {
+                        // running on SobkeCM server (live, test, or dev)
                         path_mets = prefix + myitem.path_folder + myitem.packageid + ".mets.xml";
                     }
                     
@@ -150,7 +165,7 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
                         {
                             Console.WriteLine("METS xml is Valid.");
 
-                            find_exact_matches_update_mets(path_mets, ref q, ref parser, ref rqp);
+                            find_exact_matches_update_mets(myitem.packageid, path_mets, path_mets_xsd, ref q, ref parser, ref rqp);
                         }
                         else
                         {
@@ -161,72 +176,31 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
                     {
                         Console.WriteLine(idx + ". " + myitem.packageid + " mets does NOT exist [" + path_mets + "].");
                     }
+
+                    Console.WriteLine("________________________________________________________");
                 }
             }
         }
 
-        private static void find_exact_matches_update_mets(string path_mets, ref SparqlQuery q, ref SparqlQueryParser parser, ref RemoteQueryProcessor rqp)
+        private static void find_exact_matches_update_mets(string packageid,string path_mets, string path_mets_xsd, ref SparqlQuery q, ref SparqlQueryParser parser, ref RemoteQueryProcessor rqp)
         {
             XmlDocument doc = new XmlDocument();
             XmlNodeList nodes;
+            XmlNode node2;
             XmlAttributeCollection attrs;
 
             string term = null, query=null;
 
-            //SobekCM_Item item = new SobekCM_Item();
-
             Console.WriteLine("FEMUM: Reading [" + path_mets + "].");
-            
-            //item.Read_From_METS(path_mets);
-
-            /*      
-            if (item.Contains_Complex_Content)
-            {
-                Console.WriteLine("Contains complex content.");
-            }
-            else
-            {
-                Console.WriteLine("Does NOT contain complex content.");
-            }
-
-            if (item.hasBibliographicData)
-            {
-                Console.WriteLine("Has bibliographicdata.");
-            }
-            else
-            {
-                Console.WriteLine("Does NOT have bibliographicdata.");
-            }
-            */
-            
-            /*
-            if (item.Bib_Info.Subjects_Count>0)
-            {
-                Console.WriteLine("There are [" + item.Bib_Info.Subjects.Count + "] subjects.");
-
-                foreach (Subject_Info si in item.Bib_Info.Subjects)
-                {
-                    Console.WriteLine("actual_id=[" + si.Actual_ID + "].");
-                    Console.WriteLine("id=[" + si.ID + "].");
-                    Console.WriteLine("authority=[" + si.Authority + "].");
-                    Console.WriteLine("class_type=[" + si.Class_Type + "].");
-                    Console.WriteLine("language=[" + si.Language + "].");
-                    Console.WriteLine("\r\n");
-                }
-            }
-            else
-            {
-                Console.WriteLine("There are no subjects.");
-            }
-            */
-
-            //item = null;
            
             XmlNamespaceManager mynsm = new XmlNamespaceManager(doc.NameTable);
             mynsm.AddNamespace("METS", "http://www.loc.gov/METS/");
             mynsm.AddNamespace("mods", "http://www.loc.gov/mods/v3");
+            string authorityURI = "http://id.loc.gov/authorities/subjects";
 
             List<sparql.sqresult> sqresults = new List<sparql.sqresult>();
+
+            Dictionary<string, string> subjectupdates = new Dictionary<string, string>();
 
             doc.Load(path_mets);
             
@@ -234,7 +208,7 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
 
             if (nodes!=null && nodes.Count>0)
             {
-                Console.WriteLine("There are [" + nodes.Count + "] subjects.\r\n");
+                Console.WriteLine("There are [" + nodes.Count + "] subjects for [" + packageid + "].\r\n");
 
                 foreach (XmlNode node in nodes)
                 {
@@ -242,16 +216,17 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
                     Console.WriteLine("\t" + node.FirstChild.InnerText + ": id=[" + attrs["ID"].Value + "], authority=[" + attrs["authority"].Value + "].");
 
                     term = node.FirstChild.InnerText.ToLower();
-                    //Console.WriteLine("Getting query for term=[" + term + "].");
+                    term = term.Replace("'", "%27");
+                    term = term.Replace("\"", "%22");
+
                     query=Get_sh_query(term);
                     q = parser.ParseFromString(query);
-                    //Console.WriteLine(query);
-                    //Console.WriteLine("myuri=[" + myuri + "].");
                     sqresults = sparql.GetSparqlQueryResults(ref q, ref rqp);
 
                     if (sqresults!=null && sqresults.Count==1)
                     {
                         Console.WriteLine("Retrieved URI=[" + sqresults[0].s + "].");
+                        subjectupdates.Add(attrs["ID"].Value.ToString(), sqresults[0].s.ToString());
                     }
                     else if (sqresults!=null && sqresults.Count>1)
                     {
@@ -264,6 +239,43 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
 
                     Console.WriteLine("\r\n");
                 }
+
+                XmlAttribute attr;
+
+                Console.WriteLine(subjectupdates.Count + " URIs found for [" + packageid + "].");
+                foreach (KeyValuePair<string,string> subjectupdate in subjectupdates)
+                {
+                    Console.WriteLine(packageid + ": " + subjectupdate.Key + "=<" + subjectupdate.Value + ">");
+                    node2 = doc.SelectSingleNode("//mods:subject[@ID='" + subjectupdate.Key + "']", mynsm);
+
+                    attr = doc.CreateAttribute("authorityURI");
+                    attr.Value = authorityURI;
+                    node2.Attributes.SetNamedItem(attr);
+
+                    attr = doc.CreateAttribute("valueURI");
+                    attr.Value = subjectupdate.Value;
+                    node2.Attributes.SetNamedItem(attr);
+                }
+
+                node2 = doc.SelectSingleNode("//METS:metsHdr", mynsm);
+                attr = doc.CreateAttribute("LASTMODDATE");
+                attr.Value = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ssZ");
+                node2.Attributes.SetNamedItem(attr);
+
+                doc.Save(path_mets);
+                Console.WriteLine("Saved updated mets to [" + path_mets + "].");
+                Boolean mytry = xmlUtilities.validateXML("http://www.loc.gov/METS/", path_mets_xsd, path_mets);
+
+                if (mytry)
+                {
+                    Console.WriteLine("Valid after save [" + path_mets + "].");
+                }
+                else
+                {
+                    Console.WriteLine("Invalid after save [" + path_mets + "].");
+                }
+
+                doc = null;
             }
             else
             {
