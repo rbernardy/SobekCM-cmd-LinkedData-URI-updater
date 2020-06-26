@@ -11,7 +11,7 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
 {
     class Program
     {
-        private static string myversion = "20200624-1003";
+        private static string myversion = "20200626-1324";
 
         private class item
         {
@@ -26,7 +26,7 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
         {
             if (args.Length==0)
             {
-                Console.WriteLine("Command line arguments that are available: prefix, aggcode, db, urlmode, limit...");
+                Console.WriteLine("\r\n\r\nCommand line arguments that are available (some required, some optional):\r\n\r\n--prefix= (non-urlmode, drive/path to content folder, while running on server)\r\n--aggcode=\r\n--db= (optional, defaults to live database, nickname of sobekcm database server/instance/database)\r\n--urlmode (optional, test mode, to retrieve files via URL and write updated files locally vs. accessing local file system to overwrite live files)\r\n--limit= (optional, to limit the number of records to update (urlmode or not).\r\n");
                 return;
             }
             else
@@ -163,18 +163,18 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
                         
                         if (mytry)
                         {
-                            Console.WriteLine("METS xml is Valid.");
+                            Console.WriteLine("original METS xml is Valid, proceeding with update.");
 
                             find_exact_matches_update_mets(myitem.packageid, path_mets, path_mets_xsd, ref q, ref parser, ref rqp);
                         }
                         else
                         {
-                            Console.WriteLine("METS xml is Invalid.");
+                            Console.WriteLine("METS xml is Invalid, skipping processing.");
                         }
                     }
                     else
                     {
-                        Console.WriteLine(idx + ". " + myitem.packageid + " mets does NOT exist [" + path_mets + "].");
+                        Console.WriteLine(idx + ". " + myitem.packageid + " metsxml file does NOT exist [" + path_mets + "], skipping processing.");
                     }
 
                     Console.WriteLine("________________________________________________________");
@@ -189,9 +189,11 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
             XmlNode node2;
             XmlAttributeCollection attrs;
 
-            string term = null, query=null;
+            string term = null, query=null, id=null;
+            Boolean noID = false;
+            int idx = 0;
 
-            Console.WriteLine("FEMUM: Reading [" + path_mets + "].");
+            Console.WriteLine("FEMUM: Reading metsxml file, path=[" + path_mets + "].");
            
             XmlNamespaceManager mynsm = new XmlNamespaceManager(doc.NameTable);
             mynsm.AddNamespace("METS", "http://www.loc.gov/METS/");
@@ -212,8 +214,30 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
 
                 foreach (XmlNode node in nodes)
                 {
+                    idx++;
+
                     attrs = node.Attributes;
-                    Console.WriteLine("\t" + node.FirstChild.InnerText + ": id=[" + attrs["ID"].Value + "], authority=[" + attrs["authority"].Value + "].");
+                    Console.Write("\t" + node.FirstChild.InnerText + ":");
+
+                    try
+                    {
+                        Console.Write("id=[" + attrs["ID"].Value + "],");
+                        id = attrs["ID"].ToString();
+                    }
+                    catch (Exception)
+                    {
+                        Console.Write("id=[N/A] => " + idx + ",");
+                        id = idx.ToString();
+                    }
+
+                    try
+                    {
+                        Console.Write("authority=[" + attrs["authority"].Value + "].\r\n");
+                    }
+                    catch (Exception)
+                    {
+                        Console.Write("authority=[N/A]).\r\n");
+                    }
 
                     term = node.FirstChild.InnerText.ToLower();
                     term = term.Replace("'", "%27");
@@ -225,16 +249,16 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
 
                     if (sqresults!=null && sqresults.Count==1)
                     {
-                        Console.WriteLine("Retrieved URI=[" + sqresults[0].s + "].");
-                        subjectupdates.Add(attrs["ID"].Value.ToString(), sqresults[0].s.ToString());
+                        Console.WriteLine("Retrieved 1 URI=[" + sqresults[0].s + "] for [" + term + "], id=[" + id + "].");
+                        subjectupdates.Add(id, sqresults[0].s.ToString());
                     }
                     else if (sqresults!=null && sqresults.Count>1)
                     {
-                        Console.WriteLine("There were [" + sqresults.Count + "] results.");
+                        Console.WriteLine("There were [" + sqresults.Count + "] results for [" + term + "], id=[" + id + "].");
                     }
                     else
                     {
-                        Console.WriteLine("There were NO results for [" + term + "].");
+                        Console.WriteLine("There were NO results for [" + term + "], id=[" + id + "].");
                     }
 
                     Console.WriteLine("\r\n");
@@ -242,11 +266,41 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
 
                 XmlAttribute attr;
 
-                Console.WriteLine(subjectupdates.Count + " URIs found for [" + packageid + "].");
+                Console.WriteLine(subjectupdates.Count + " URIs found for [" + packageid + "], processing updates.");
+
+                foreach (KeyValuePair<string, string> subjectupdate in subjectupdates)
+                {
+                    Console.WriteLine(packageid + ": " + subjectupdate.Key + "=<" + subjectupdate.Value + ">");
+                }
+
+                Console.WriteLine("\r\n");
+
                 foreach (KeyValuePair<string,string> subjectupdate in subjectupdates)
                 {
                     Console.WriteLine(packageid + ": " + subjectupdate.Key + "=<" + subjectupdate.Value + ">");
-                    node2 = doc.SelectSingleNode("//mods:subject[@ID='" + subjectupdate.Key + "']", mynsm);
+
+                    // add id attribute if it is missing
+                    /*
+                    if (int.TryParse(subjectupdate.Key, out int newid))
+                    {
+                        Console.WriteLine("Replacing missing ID attribute for subject position=" + subjectupdate.Key);
+                        node2 = doc.SelectSingleNode("//mods:subject[position()=" + idx + "]",mynsm);
+                        attr = doc.CreateAttribute("ID");
+                        attr.Value = subjectupdate.Key;
+                        node2.Attributes.SetNamedItem(attr);
+                    }
+                    */
+
+                    Console.WriteLine("Trying to update subject[@ID='" + subjectupdate.Key + "']/position=" + subjectupdate.Key);
+
+                    if (int.TryParse(subjectupdate.Key, out int newid2))
+                    {
+                        node2 = doc.SelectSingleNode("//mods:subject[position()=" + subjectupdate.Key + "]",mynsm);
+                    }
+                    else
+                    {
+                        node2 = doc.SelectSingleNode("//mods:subject[@ID='" + subjectupdate.Key + "']", mynsm);
+                    }
 
                     attr = doc.CreateAttribute("authorityURI");
                     attr.Value = authorityURI;
@@ -257,13 +311,17 @@ namespace SobekCM_cmd_LinkedData_URI_Updater
                     node2.Attributes.SetNamedItem(attr);
                 }
 
+                Console.WriteLine("Updating lastmoddate for [" + packageid + "].");
                 node2 = doc.SelectSingleNode("//METS:metsHdr", mynsm);
                 attr = doc.CreateAttribute("LASTMODDATE");
                 attr.Value = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ssZ");
                 node2.Attributes.SetNamedItem(attr);
 
+                //Console.WriteLine("\r\n\r\n" + doc.OuterXml.ToString() + "\r\n\r\n");
+
                 doc.Save(path_mets);
                 Console.WriteLine("Saved updated mets to [" + path_mets + "].");
+
                 Boolean mytry = xmlUtilities.validateXML("http://www.loc.gov/METS/", path_mets_xsd, path_mets);
 
                 if (mytry)
